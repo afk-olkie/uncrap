@@ -5,7 +5,8 @@
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
 
-  <script src="dist/UncrapCore.js"></script>
+  <script src="../../dist/UncrapCore.js"></script>
+  <script src="processor.js"></script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/SyntaxHighlighter/3.0.83/scripts/shCore.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/SyntaxHighlighter/3.0.83/scripts/shBrushCpp.min.js"></script>
@@ -145,138 +146,42 @@ function showHide(jQueryObject, show){
   }
 }
 
-//TODO move processing code out of html file
+
 function afk_ex_Convert(){
-  //TODO put below vars in options object
-  var sortBy1 = $("#afk-ex-sort1").val();
-  var sortBy2 = $("#afk-ex-sort2").val();
-  var sortBy3 = $("#afk-ex-sort3").val();
-  var showLog = $("#afk-ex-show-log").is(':checked');
-  var includeComments = $("#afk-ex-include-comments").is(':checked');
-  var input = $("#afk-ex-input-c").val();
-  var existingHeader = $("#afk-ex-existing-declarations").val();
-  var ifndefName = $("#afk-ex-ifndef-name").val();
-  var output = "";
 
-  /** @type {FoundFunction[]} */
-  var foundFunctionsArray = [];
-  var declaredCount = 0;
-  var declaredMap = {};
-  var definedMap = {};
-  var definedArray = [];   //from c input box
+  //TODO @crckmc - insert your goodness with drag-n-drop / multiple files here!
   
-  var warnings = "";
-  var log = "";
-
-  log += "------------------------------------------------------\n";
-  log += "looking for functions in c input textarea\n";
-  foundFunctionsArray = UncrapCore.CParser.parseFuncProtos(input, includeComments);
-  $(foundFunctionsArray).each(function(index, foundFunction){
-    log += "found function: " + foundFunction + "\n";
-    if(!foundFunction.declared){
-      //add to defined
-      if(definedMap[foundFunction.functionName]){
-        warnings += "MULTIPLE definitions found for '" + foundFunction.functionName + "'\n";
-        warnings += "  > previous definition: " + definedMap[foundFunction.functionName] + "\n";
-        warnings += "  >    other definition: " + foundFunction + "\n";
-      }else{
-        definedArray.push(foundFunction);
-      }
-      definedMap[foundFunction.functionName] = foundFunction;
-    }else{
-      //add to declared
-      log += " > detected as declared\n";
-      if(declaredMap[foundFunction.functionName]){
-        warnings += "MULTIPLE declarations found for '" + foundFunction.functionName + "'\n";
-        warnings += "  > previous declaration: " + declaredMap[foundFunction.functionName] + "\n";
-        warnings += "  >    other declaration: " + foundFunction + "\n";
-      }else{
-        declaredCount++;
-      }
-      declaredMap[foundFunction.functionName] = foundFunction;
-    }
-  });
+  //create a single object with all the options required for processing a single target file
+  let target = {};
+  //TODO put in file name so that it can be output in log
+  target.sortBy1 = $("#afk-ex-sort1").val();
+  target.sortBy2 = $("#afk-ex-sort2").val();
+  target.sortBy3 = $("#afk-ex-sort3").val();
+  target.includeComments = $("#afk-ex-include-comments").is(':checked');
+  target.input = $("#afk-ex-input-c").val();
+  target.existingHeader = $("#afk-ex-existing-declarations").val();
+  target.ifndefName = $("#afk-ex-ifndef-name").val();
   
-  log += "Function stats: defined=" + definedArray.length + ", declared="+declaredCount+"\n";
-  if(definedArray.length === 0){
-    warnings += "No defined functions found!\n";
-  }
+  processTarget(target);
 
-  log += "------------------------------------------------------\n";
-  if(sortBy1 || sortBy2 || sortBy3){
-      log += "sorting defined functions based on fields: " + sortBy1 + ", " + sortBy2 + ", " + sortBy3+ "\n";
-      definedArray = definedArray.sort(function(a,b){
-        var aStr = getSortString([sortBy1,sortBy2,sortBy3], a);
-        var bStr = getSortString([sortBy1,sortBy2,sortBy3], b);
-        return aStr.localeCompare(bStr);
-      });
-  }
-
-  log += "------------------------------------------------------\n";
-  log += "rendering output and ignoring defined functions that have already been declared\n";
-  $(definedArray).each(function(index, foundFunction){
-    var declaration = declaredMap[foundFunction.functionName];
-    if(declaration === undefined){
-      if(includeComments && foundFunction.comments){
-        output += foundFunction.comments.trim() + "\n";
-      }
-      output += foundFunction.returnType + " " + foundFunction.functionName + "(" + foundFunction.parameters + ");\n";
-    }else{
-      log += "not rendering function '" + foundFunction.functionName + "' because it was already declared.\n";
-      var mismatchString = foundFunction.getSignatureMismatchString( declaration );
-      if(mismatchString !== ""){
-        warnings += "INCOMPATIBLE SIGNATURES FOUND between declaration and definition because " + mismatchString + "\n";
-        warnings += " > declaration: " + declaration + "\n";
-        warnings += " >  definition: " + foundFunction + "\n";
-      }
-    }
-    //check that signature matches based on return type and number of parameters
-    
-    
-
-  });
-
-  if(ifndefName){
-    output = "#ifndef " + ifndefName + "_H\n#define " + ifndefName + "_H\n\n" + output + "\n#endif /* " + ifndefName + "_H */\n";
-  }
-
-  $("#afk-ex-output-header").html('<pre class="brush: cpp">' + output + '</pre>');
+  $("#afk-ex-output-header").html('<pre class="brush: cpp">' + target.output + '</pre>');
 
   //output log
   var jqLog = $("#afk-ex-output-log");
-  jqLog.children(".afk-ex-output-div").html("<pre class='brush: plain;'>" + log + "</pre>");
+  jqLog.children(".afk-ex-output-div").html("<pre class='brush: plain;'>" + target.log + "</pre>");
   
   //output warnings
   var jqWarnings = $("#afk-ex-output-warnings");
-  if(warnings.length > 0){
+  if(target.warnings.length > 0){
     jqWarnings.show();
-    jqWarnings.children(".afk-ex-output-div").html("<pre class='brush: plain;'>" + warnings + "</pre>");
+    jqWarnings.children(".afk-ex-output-div").html("<pre class='brush: plain;'>" + target.warnings + "</pre>");
   }else{
     jqWarnings.hide();
   }
-  
+
   SyntaxHighlighter.highlight();
 }
 
-
-//------------------------------------------------------------------------------
-function getSortString(sortByArray, object){
-  var result = "";
-  $(sortByArray).each(function(index, sortByProperty){
-    if(sortByProperty){
-      result += object[sortByProperty]
-    }
-  });
-  return result;
-}
-
-function arraysIntersect(array1, array2){
-  var result = false;
-  for(var i=0; !result && i < array2.length; i++){
-    result = array1.indexOf(array2[i]) !== -1;
-  }
-  return result;
-}
 
 $(document).ready(function(){
   SyntaxHighlighter.highlight();
