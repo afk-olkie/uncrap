@@ -1,5 +1,5 @@
 
-import { parseFuncProtos } from "./CParser";
+import { CParser } from "./CParser";
 
 let src = `
   //example input
@@ -18,6 +18,6 @@ let src = `
   }
 `;
 
-let functions = parseFuncProtos(src, true);
+let functions = CParser.parseFuncProtos(src, true);
 console.log(functions);
 

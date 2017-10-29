@@ -1,11 +1,11 @@
 const path = require('path');
 
 module.exports = {
-    entry: './src/app.ts',
+    entry: './src/UncrapCore.ts',
     output: {
         path: path.resolve(__dirname, 'dist'),  
-        filename: 'uncrap.js',
-        publicPath: '/dist/'
+        filename: 'UncrapCore.js',
+        library: 'UncrapCore',
     },
     resolve: {
         // Add `.ts` and `.tsx` as a resolvable extension.
