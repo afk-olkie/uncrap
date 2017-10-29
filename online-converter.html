@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title> &raquo; Online c function prototype header generator tool</title>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/SyntaxHighlighter/3.0.83/scripts/shCore.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/SyntaxHighlighter/3.0.83/scripts/shBrushCpp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/SyntaxHighlighter/3.0.83/scripts/shBrushPlain.min.js"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/SyntaxHighlighter/3.0.83/styles/shCore.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/SyntaxHighlighter/3.0.83/styles/shCoreMidnight.css" />
+
+  <style type="text/css" id="syntaxhighlighteranchor"></style>
+
+</head>
+
+<body class="post-template-default single single-post postid-8 single-format-standard page_bg"> 
+			<h2>Online c function prototype header generator tool</h2>
+			<div class="entry">
+				<p>Note: latest code on my laptop. Refactoring and improving for code release.</p>
+<p>Really simple concept: scan an input c file, find the functions that need prototype declarations, and then output the prototype declarations for you to copy and paste into a header or at the top of your file.</p>
+<p>I use this simple tool when quickly prototyping microcontroller c code. Just write your code without worrying about declaring function prototypes, then copy and paste the code into this tool and it will create the declarations for all functions that have not been declared yet. No rocket science going on, just saves you some time. </p>
+<p>You can also use this tool to merge additions to your header file if you have a number of functions that you forgot to declare. Just paste the header and source files together in here and let the script spit out the missing declarations to add to the header.</p>
+<p>Keep in mind that this tool is intended for quick prototyping. If you are making something complicated, best plan out your headers. Don't blame me for helping you be lazy :)<br />
+<span id="more-8"></span></p>
+
+<span style="color:#DF0000;"><strong><em>NOTE!</em></strong></span> this script is a proof of concept hacked together with a bunch of large regex patterns so be realistic with what you expect from it! Performance could be drastically improved if javascript had possessive quantifiers (sad face).
+
+<br /><br />
+<strong>OPTIONS</strong>:<br />
+<span title="sort output function prototypes by: ">
+Sort by: 
+<select id="afk-ex-sort1">
+  <option value=""></option>
+  <option selected value="functionName">name</option>
+  <option value="returnType">return type</option>
+  <option value="parameters">params</option>
+</select>
+then by: 
+<select id="afk-ex-sort2">
+  <option value=""></option>
+  <option value="functionName">name</option>
+  <option selected value="returnType">return type</option>
+  <option value="parameters">params</option>
+</select>
+then by: 
+<select id="afk-ex-sort3">
+  <option value=""></option>
+  <option value="functionName">name</option>
+  <option value="returnType">return type</option>
+  <option selected value="parameters">params</option>
+</select>
+</span>
+<br />
+
+<span title="show log at bottom of page?">
+  <input type="checkbox" id="afk-ex-show-log" onclick="$('#afk-ex-output-log').toggle();" checked /> <label for="afk-ex-show-log">show log</label>
+</span>
+<span title="copy over function comment documentation? Slow! May lock up a tab in chrome (regex hangs). Seems to work fine in Firefox! Don't even try in IE.">
+  <input type="checkbox" id="afk-ex-include-comments" /> <label for="afk-ex-include-comments">observe strings/comments? Better detection. SLOW! Only use with firefox.</label>
+</span>
+
+<br /> 
+<span title="leave blank if you don't want an #ifndef <INCLUDE_GUARD>_H...#endif wrapped around the output">
+  include guard:<input id="afk-ex-ifndef-name" type="text" />
+</span>
+<span title="appended to the include guard to create the final #ifndef define name">
+append:<input id="afk-ex-ifndef-append" type="text" value="_H" size="3" />
+</span>
+<a href="http://en.wikipedia.org/wiki/Include_guard" target="_blank" title="learn about include guards">wtf?</a>
+<br />
+
+<div style="display:none;">
+  <br />
+  <strong>Existing declarations/header</strong> (so we can skip identical declarations):<br />
+  <textarea id="afk-ex-existing-declarations" rows="7" cols="100"></textarea>
+  <br />
+</div>
+
+<br />
+<strong>INPUT C CODE</strong>:<br />
+<textarea id="afk-ex-input-c" rows="15" cols="115">
+//example input
+void toggleLed(){
+  //stuff
+}
+///blinky doxygen like comment
+void blinky(){
+  toggleLed(); 
+  delayMs(100);
+  toggleLed(); 
+}
+/** delayMs doxygen like comment */
+void delayMs(unsigned char ms){ 
+  //prototype for delayMs should be declared above its usage in blinky();
+}
+</textarea>
+<br />
+<input onclick="afk_ex_Convert();" type="button" value="create header!" />
+<a href="https://raw.github.com/brl/ftpscan/master/ftp.c" target="_blank">get larger example c</a> | 
+<a href="http://people.csail.mit.edu/smcc/projects/single-file-programs/gzip.c" target="_blank">get huge/complex example</a>
+<br />
+
+
+<div id="afk-ex-output-warnings" style="display:none;">
+  <br />
+  <span style="color:#880000;"><strong><em>WARNINGS:</em></strong></span>
+  <div class="afk-ex-output-div">
+    <pre class="brush: plain;">nothing yet</pre>
+  </div>
+</div>
+
+<br />
+<strong>OUTPUT HEADER</strong>:
+<pre id="afk-ex-output-header" class="brush: cpp">//click the button!</pre>
+
+<div id="afk-ex-output-log" style="" rows="5" cols="100">
+  <br />
+  <strong>LOG:</strong>
+  <div class="afk-ex-output-div">
+    <pre class="brush: plain;">nothing yet</pre>
+  </div>
+</div>
+
+<br /><br /><br />
+
+<style type="text/css">
+.syntaxhighlighter{
+  padding: 3px;
+  margin: 0px;
+}
+</style>
+
+<script type="text/javascript">
+
+function showHide(jQueryObject, show){
+  if(show){
+    jQueryObject.show();
+  }else{
+    jQueryObject.hide();  
+  }
+}
+
+function afk_ex_Convert(){
+  var sortBy1 = $("#afk-ex-sort1").val();
+  var sortBy2 = $("#afk-ex-sort2").val();
+  var sortBy3 = $("#afk-ex-sort3").val();
+  var showLog = $("#afk-ex-show-log").is(':checked');
+  var includeComments = $("#afk-ex-include-comments").is(':checked');
+  var input = $("#afk-ex-input-c").val();
+  var existingHeader = $("#afk-ex-existing-declarations").val();
+  var ifndefName = $("#afk-ex-ifndef-name").val();
+  var output = "";
+  var foundFunctionsArray = [];
+  var declaredCount = 0;
+  var declaredMap = {};
+  var definedMap = {};
+  var definedArray = [];   //from c input box
+  
+  var warnings = "";
+  var log = "";
+
+  log += "------------------------------------------------------\n";
+  log += "looking for functions in c input textarea\n";
+  foundFunctionsArray = getFunctions(input, includeComments);
+  $(foundFunctionsArray).each(function(index, foundFunction){
+    log += "found function: " + foundFunction + "\n";
+    if(!foundFunction.declared){
+      //add to defined
+      if(definedMap[foundFunction.functionName]){
+        warnings += "MULTIPLE definitions found for '" + foundFunction.functionName + "'\n";
+        warnings += "  > previous definition: " + definedMap[foundFunction.functionName] + "\n";
+        warnings += "  >    other definition: " + foundFunction + "\n";
+      }else{
+        definedArray.push(foundFunction);
+      }
+      definedMap[foundFunction.functionName] = foundFunction;
+    }else{
+      //add to declared
+      log += " > detected as declared\n";
+      if(declaredMap[foundFunction.functionName]){
+        warnings += "MULTIPLE declarations found for '" + foundFunction.functionName + "'\n";
+        warnings += "  > previous declaration: " + declaredMap[foundFunction.functionName] + "\n";
+        warnings += "  >    other declaration: " + foundFunction + "\n";
+      }else{
+        declaredCount++;
+      }
+      declaredMap[foundFunction.functionName] = foundFunction;
+    }
+  });
+  
+  log += "Function stats: defined=" + definedArray.length + ", declared="+declaredCount+"\n";
+  if(definedArray.length === 0){
+    warnings += "No defined functions found!\n";
+  }
+
+  log += "------------------------------------------------------\n";
+  if(sortBy1 || sortBy2 || sortBy3){
+      log += "sorting defined functions based on fields: " + sortBy1 + ", " + sortBy2 + ", " + sortBy3+ "\n";
+      definedArray = definedArray.sort(function(a,b){
+        var aStr = getSortString([sortBy1,sortBy2,sortBy3], a);
+        var bStr = getSortString([sortBy1,sortBy2,sortBy3], b);
+        return aStr.localeCompare(bStr);
+      });
+  }
+
+  log += "------------------------------------------------------\n";
+  log += "rendering output and ignoring defined functions that have already been declared\n";
+  $(definedArray).each(function(index, foundFunction){
+    var declaration = declaredMap[foundFunction.functionName];
+    if(declaration === undefined){
+      if(includeComments && foundFunction.comments){
+        output += foundFunction.comments.trim() + "\n";
+      }
+      output += foundFunction.returnType + " " + foundFunction.functionName + "(" + foundFunction.parameters + ");\n";
+    }else{
+      log += "not rendering function '" + foundFunction.functionName + "' because it was already declared.\n";
+      var mismatchString = foundFunction.getSignatureMismatchString( declaration );
+      if(mismatchString !== ""){
+        warnings += "INCOMPATIBLE SIGNATURES FOUND between declaration and definition because " + mismatchString + "\n";
+        warnings += " > declaration: " + declaration + "\n";
+        warnings += " >  definition: " + foundFunction + "\n";
+      }
+    }
+    //check that signature matches based on return type and number of parameters
+    
+    
+
+  });
+
+  if(ifndefName){
+    output = "#ifndef " + ifndefName + "_H\n#define " + ifndefName + "_H\n\n" + output + "\n#endif /* " + ifndefName + "_H */\n";
+  }
+
+  $("#afk-ex-output-header").html('<pre class="brush: cpp">' + output + '</pre>');
+
+  //output log
+  var jqLog = $("#afk-ex-output-log");
+  jqLog.children(".afk-ex-output-div").html("<pre class='brush: plain;'>" + log + "</pre>");
+  
+  //output warnings
+  var jqWarnings = $("#afk-ex-output-warnings");
+  if(warnings.length > 0){
+    jqWarnings.show();
+    jqWarnings.children(".afk-ex-output-div").html("<pre class='brush: plain;'>" + warnings + "</pre>");
+  }else{
+    jqWarnings.hide();
+  }
+  
+  SyntaxHighlighter.highlight();
+}
+
+
+//------------------------------------------------------------------------------
+function getSortString(sortByArray, object){
+  var result = "";
+  $(sortByArray).each(function(index, sortByProperty){
+    if(sortByProperty){
+      result += object[sortByProperty]
+    }
+  });
+  return result;
+}
+
+//------------------------------------------------------------------------------
+function getFunctions(inputCode, parseComments){
+  var functions = []; 
+  var cKeywords = ["auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum", "extern", "float", "for", "goto", "if", "int", "long", "register", "return", "short", "signed", "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while"];
+  var invalidFunctionNames = cKeywords;
+  var invalidReturnTypes = ["auto", "break", "case", "continue", "default", "do", "else", "for", "goto", "if", "return", "sizeof", "switch", "while", "typedef"]; //TODO: may have some of these wrong
+  
+  
+  //convert all line endings to a \n
+  inputCode = inputCode.replace(/\r\n|\r/,"\n");
+  
+  //grab all comment blocks, and comment lines preceeding function definition
+  var reStringPart = /"(?:\\[\n|.]|[^\n\\])"/.source;
+  var reCommentPart = /\/(?:[*][\s\S]*?(?:[*]\/|$)|\/.*(?=\n|$))/.source; //NOTE the look ahead! can't capture \n, because js doesn't support \Z and we need our big re pattern below to be able to match on \Z or $ if not using multiline mode
+  var reStringOrCommentOrAny = "(?:" + reCommentPart + "|" + reStringPart + "|[\\s\\S])*?"; //tries to respect comments and strings
+  //var reBeforePart = /([\s\S]*?)/.source; //does not respect comments or strings
+  var reBeforePart = "(" + reStringOrCommentOrAny + ")";
+  
+  var reDoxygenCommentsPart = /\s*((?:\s*\/[*][*!][\s\S]*?[*]\/|\s*\/\/[\/!].*(?:\n|$))+)/.source;
+   
+  var re = new RegExp(reBeforePart + /(?:(?:^|\n)\s*(\w+[\s*\t\w]+)\s+([*\w\d]+)\s*\(\s*([^)]*)\s*\)\s*([{;])|$)/.source, "g");  //can't use multiline mode because we need to match on end of input, not just line
+  //console.log(re);
+  var groups;
+  var lastIndex = -1; //detect stuck in loops
+  while ((groups = re.exec(inputCode)) !== null && groups.index != lastIndex  )
+  {
+      var result = new FoundFunction();
+      result.before = groups[1] || "";
+      result.returnType = (groups[2] || "").replace(/\s+/g, " ");
+      result.functionName = groups[3] || "";
+      result.parameters = (groups[4] || "").replace(/\s+/g, " ");
+      if(groups[5] == ";"){
+        result.declared = true;
+      }
+
+      //if we didn't find a function name, don't add it or invalid keywords used
+      if(result.functionName){
+        //check individual return type words
+        var returnTypes = result.returnType.toLowerCase().split(/[\s*]+/);
+        if(arraysIntersect(returnTypes, invalidReturnTypes) || invalidFunctionNames.indexOf(result.functionName.toLowerCase()) != -1){
+            //TODO: log use of invalid keyword (or rather that we thought we found a function declaration/definition, but it had invalid keywords).
+        }else{
+            //extract comments, if any
+            if(parseComments === true){
+                var reComments = new RegExp( reBeforePart + reDoxygenCommentsPart + /\s*/.source, "g");
+                //have to loop and find last match and check if it matches right up to end of .before value. Why loop? because if we tell it to match up to $ (if it can), it will create some problems. /** header */ other lines (not a function) /* comment */ function. It will match right on over. Need to let it stop once it is happy and not force to end of input.
+                var groups2;
+                var madeItToEnd = false;
+                while(!madeItToEnd && (groups2 = reComments.exec(result.before)) !== null){
+                    madeItToEnd = reComments.lastIndex == result.before.length;
+                }
+                //if we made it to the end of the input string, then we found a matching doxygen comment!!!
+                if(madeItToEnd && groups2){
+                  result.before = groups2[1];
+                  result.comments = groups2[2].replace(/(\r\n|\r|\n)[ \t]+/g, "$1"); //remove indenting
+                }
+            }
+            
+            functions.push(result);
+        }//end of invalid keywords test
+      }
+      
+      lastIndex = groups.index;
+  }
+  return functions;
+}
+
+//----- FoundFunction class definition ----------
+function FoundFunction(){
+}
+FoundFunction.prototype.before = null;
+FoundFunction.prototype.comments = null;
+FoundFunction.prototype.returnType = null;
+FoundFunction.prototype.functionName = null;
+FoundFunction.prototype.parameters = null;
+FoundFunction.prototype.declared = false;
+FoundFunction.prototype.getSignatureMismatchString = function(foundFunction){
+  //NOTE: not smart enough for 'extern' and stuff like that
+  if(foundFunction.returnType != this.returnType){
+    return "return types do not match!";
+  }
+
+  //count parameters
+  //NOTE: no support for strings with "," in it
+  if((foundFunction.parameters.match(/.+?(,|$)/g) || []).length != (this.parameters.match(/.+?(,|$)/g) || []).length){
+    return "parameter count does not match!";
+  }
+  return "";
+};
+FoundFunction.prototype.toString = function(){
+  return "FoundFunction{ returnType='" + this.returnType + "', functionName='"+this.functionName+"', parameters='"+this.parameters+"', declared='"+this.declared+"' }";
+};
+
+
+
+function arraysIntersect(array1, array2){
+  var result = false;
+  for(var i=0; !result && i < array2.length; i++){
+    result = array1.indexOf(array2[i]) !== -1;
+  }
+  return result;
+}
+
+$(document).ready(function(){
+  SyntaxHighlighter.highlight();
+});
+
+</script>
+
+</body>
+</html>
