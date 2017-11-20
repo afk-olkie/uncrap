@@ -4,6 +4,8 @@
 // import * as UncrapCore from "../../src/UncrapCore";
 // import { FoundFunction } from "../../src/UncrapCore";
 
+//TODO: move this into `UncrapCore`
+
 class Target {
   sortBy1 : string;
   sortBy2 : string;
