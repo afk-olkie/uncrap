@@ -20,9 +20,8 @@
 </head>
 
 <body class="post-template-default single single-post postid-8 single-format-standard page_bg"> 
-			<h2>Online c function prototype header generator tool</h2>
+			<h2>Simple Online c function prototype header generator tool</h2>
 			<div class="entry">
-				<p>Note: latest code on my laptop. Refactoring and improving for code release.</p>
 <p>Really simple concept: scan an input c file, find the functions that need prototype declarations, and then output the prototype declarations for you to copy and paste into a header or at the top of your file.</p>
 <p>I use this simple tool when quickly prototyping microcontroller c code. Just write your code without worrying about declaring function prototypes, then copy and paste the code into this tool and it will create the declarations for all functions that have not been declared yet. No rocket science going on, just saves you some time. </p>
 <p>You can also use this tool to merge additions to your header file if you have a number of functions that you forgot to declare. Just paste the header and source files together in here and let the script spit out the missing declarations to add to the header.</p>
@@ -83,7 +82,7 @@ append:<input id="afk-ex-ifndef-append" type="text" value="_H" size="3" />
 </div>
 
 <br />
-<strong>INPUT C CODE OR DRAG &amp; DROP MULTIPLE C FILES HERE</strong>:<br />
+<strong>INPUT C CODE</strong>:<br />
 <textarea id="afk-ex-input-c" rows="15" cols="115">
 //example input
 void toggleLed(){
@@ -101,8 +100,6 @@ void delayMs(unsigned char ms){
 }
 </textarea>
 <br />
-<br />
-
 <input onclick="afk_ex_Convert();" type="button" value="create header!" />
 <a href="https://raw.github.com/brl/ftpscan/master/ftp.c" target="_blank">get larger example c</a> | 
 <a href="http://people.csail.mit.edu/smcc/projects/single-file-programs/gzip.c" target="_blank">get huge/complex example</a>
@@ -139,112 +136,6 @@ void delayMs(unsigned char ms){
 </style>
 
 <script type="text/javascript">
-//add the drag & drop event listener to the textarea
-document.getElementById('afk-ex-input-c').addEventListener('drop', handleDropEvent, false);
-document.getElementById('afk-ex-input-c').addEventListener('dragover', handleDragOver, false);
- 
-//drag over handler
-function handleDragOver(evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
-	evt.dataTransfer.dropEffect = 'copy'; 
-}
-
-			  
- //drop event handler
-function handleDropEvent(event)
-{
-	event.stopPropagation();
-	event.preventDefault();
-	
-	//read each dropped File
-	for (var i = 0; i < event.dataTransfer.files.length; i++)
-	{		
-		readFile(event.dataTransfer.files[i], i);		
-	}
-	$( "<button onclick='downloadAll()' id='dlall'>Download All</button>" ).insertBefore( "#afk-ex-output-log" );
-	$( "<button onclick='clearAll()' id='clrall'>Clear All</button>" ).insertBefore( "#afk-ex-output-log" );
-}
-
-function downloadId(id){
-    var out = document.getElementById("output"+id);
-	if(out != null){
-		download(out.children[0].innerText, out.children[1].innerHTML);		
-	}
-}
-
-function download(filename, text) {
-    var pom = document.createElement('a');
-    pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-    pom.setAttribute('download', filename);
-
-    if (document.createEvent) {
-        var event = document.createEvent('MouseEvents');
-        event.initEvent('click', true, true);
-        pom.dispatchEvent(event);
-    }
-    else {
-        pom.click();
-    }
-}
-
-function downloadAll(){
-	var i = 0;
-	var out = document.getElementsByClass("outputH");
-	for(i = 0 ; i < out.length; i++){
-		download(out[i].children[0].innerText, out[i].children[1].innerText);
-		out = document.getElementById("output"+i++);
-	}	
-}
-
-function clearAll(){	
-	$('.outputH').remove();
-	$('#dlall').remove();
-	$('#clrall').remove();
-}
-
-function clearId(id){   
-	if($('#output'+id).length){
-		$('#output'+id).remove();	
-	}
-	var len = $('.outputH').length;
-	if(len == 0)
-		clearAll();
-}
-//read a code file for conversion
-function readFile(f, i){
- var reader = new FileReader();
-
-  //start converison when finished reading
-  reader.onload = (function(theFile) {
-	return function(e) {						
-		//afk_ex_Convert(e.target.result, i+1, f.name);
-		var outPut = document.createElement('div');					
-		outPut.id = 'output'+(i+1);		
-		outPut.classList = 'outputH';
-		var header = document.createElement('span');
-		header.innerText = f.name.replace('.c','.h');
-		outPut.appendChild(header);
-		var pre = document.createElement('pre');
-		pre.id = "afk-ex-output-header-"+(i+1);
-		pre.class = "brush: cpp";
-		outPut.appendChild(pre);
-		var output = document.getElementById('afk-ex-output-header');
-		output.parentNode.insertBefore(outPut, output.nextSibling);		
-
-		
-		var target = afk_ex_Convert(e.target.result,'#'+pre.id);
-		$( "<button onclick='clearId("+ (i+1) + ")'>Remove</button>" ).appendTo( "#"+outPut.id );	
-		$( "<button onclick='downloadId("+ (i+1) + ")'>Download</button>" ).appendTo( "#"+outPut.id );	
-		return target;		
-	};
-  })(f);
-  
-  reader.readAsText(f);
-}
-  
-
-
 
 function showHide(jQueryObject, show){
   if(show){
@@ -255,42 +146,28 @@ function showHide(jQueryObject, show){
 }
 
 
-function afk_ex_Convert(input, output){
-
-  //TODO @crckmc - insert your goodness with drag-n-drop / multiple files here!
-  
+function afk_ex_Convert(){
+ 
   //create a single object with all the options required for processing a single target file
   let target = {};
-  //TODO put in file name so that it can be output in log
+
   target.sortBy1 = $("#afk-ex-sort1").val();
   target.sortBy2 = $("#afk-ex-sort2").val();
   target.sortBy3 = $("#afk-ex-sort3").val();
   target.includeComments = $("#afk-ex-include-comments").is(':checked');
-  if(typeof input == 'undefined')
-	target.input = $("#afk-ex-input-c").val();
-  else
-	target.input = input;
+  target.input = $("#afk-ex-input-c").val();
   target.existingHeader = $("#afk-ex-existing-declarations").val();
   target.ifndefName = $("#afk-ex-ifndef-name").val();
   
   processTarget(target);
 
-  if(typeof output == 'undefined')
-	$("#afk-ex-output-header").html('<pre class="brush: cpp">' + target.output + '</pre>');
-  else{
-	  //don't print empty files
-	  if(target.output != ""){			
-		$(output).html('<pre class="brush: cpp">' + target.output + '</pre>');
-	  }else
-		$(output).html('<pre class="brush: cpp">' + '//Nothing found' + '</pre>');
-  }
- 
+  $("#afk-ex-output-header").html('<pre class="brush: cpp">' + target.output + '</pre>');
 
   //output log
   var jqLog = $("#afk-ex-output-log");
   jqLog.children(".afk-ex-output-div").html("<pre class='brush: plain;'>" + target.log + "</pre>");
   
-  //output warnings 	
+  //output warnings
   var jqWarnings = $("#afk-ex-output-warnings");
   if(target.warnings.length > 0){
     jqWarnings.show();
@@ -299,7 +176,7 @@ function afk_ex_Convert(input, output){
     jqWarnings.hide();
   }
 
-  SyntaxHighlighter.highlight();  
+  SyntaxHighlighter.highlight();
 }
 
 
