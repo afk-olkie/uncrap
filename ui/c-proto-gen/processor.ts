@@ -1,6 +1,6 @@
 //TODO want this .ts file compiled down to straight js without any module stuff. webpack best way?
 
-//while sorted out with collaborators, interim fix is to just comment below two lines while not developing in this file.
+//until sorted out with collaborators, interim fix is to just comment below two lines while not developing in this file.
 // import * as UncrapCore from "../../src/UncrapCore";
 // import { FoundFunction } from "../../src/UncrapCore";
 
